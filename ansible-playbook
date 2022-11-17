@@ -1,0 +1,68 @@
+# ansible playbook syntax check
+$ ansible-playbook <playbook.yml> --syntax-check
+
+# Create the file on the target machines or servers
+- hosts: webservers
+  become: true
+  tasks:
+  - name: Create a file
+    file: path=/home/ansible/niranjan.txt state=touch
+    
+# Install Apache server
+-----------------------
+- hosts: webservers
+  become: true
+  tasks:
+  - name: Install Package
+    yum: name=httpd state=present
+  - name: Start httpd service
+    service: name=httpd state=started
+  - name: Copy index.html file
+    copy: src=/home/ansible/index.html dest=/var/www/html
+
+
+# Install and start Tomcat 8 
+-----------------------
+- hosts: webservers
+  become: true
+  gather_facts: no
+  tasks:
+  - name: Download Tomcat
+    get_url: url=http://www-us.apache.org/dist/tomcat/tomcat-8/v8.5.32/bin/apache-tomcat-8.5.32.tar.gz dest=/home/ansible
+
+  - name: Extract the file downloaded tomcat file
+    command: tar xvf apache-tomcat-8.5.32.tar.gz
+ 
+  - name: Move the Tomcat directory to a smaller one
+    command: mv apache-tomcat-8.5.32 tomcat
+  
+  - name: Change Ownership and group of the Tomcat directory
+    file: path=/home/ansible/tomcat owner=ansible group=ansible mode=775 state=directory recurse=yes
+ 
+  - name: Start Tomcat
+    command: nohup /home/ansible/tomcat/bin/startup.sh # Execute command even after you have exited from the shell prompt
+    become: true
+    become_user: ansible
+
+
+# Install and configure maven
+-----------------------------
+- hosts: webservers
+  become: true
+  tasks:
+  - name: Download Maven
+    get_url: url=http://www-us.apache.org/dist/maven/maven-3/3.5.3/binaries/apache-maven-3.5.3-bin.tar.gz dest=/opt/niranjan/apache-maven-3.5.3-bin.tar.gz
+  - name: Extract Maven
+    command: tar xvf /opt/niranjan/apache-maven-3.5.3-bin.tar.gz -C /opt/niranjan
+  - name: Move to a smaller directory
+    command: mv /opt/niranjan/apache-maven-3.5.3 /opt/niranjan/maven
+  - name: Update Profile
+    copy: content="export M2_HOME=/opt/niranjan/maven \n" dest=/etc/profile.d/maven.sh
+  # lineinfile is used to add additional or append lines to existing files.
+  - lineinfile:
+     path: /etc/profile.d/maven.sh
+  line: 'export PATH=${M2_HOME}/bin:${PATH}'
+  - name: Source profile
+    shell: source /etc/profile.d/maven.sh
+
+
