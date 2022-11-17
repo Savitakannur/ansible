@@ -1,0 +1,82 @@
+Ansible Roles are consists of many playbooks which is similar to modules
+Anisble Roles are a way to group multiple tasks together into one container
+
+
+defaults –  Includes default values for variables of the role. Here we define some sane default variables, but they have the lowest priority and are usually overridden by other methods to customize the role.
+files  – Contains static and custom files that the role uses to perform various tasks.
+handlers – A set of handlers that are triggered by tasks of the role. 
+meta – Includes metadata information for the role, its dependencies, the author, license, available platform, etc.
+tasks – A list of tasks to be executed by the role. This part could be considered similar to the task section of a playbook.
+templates – Contains Jinja2 template files used by tasks of the role.
+tests – Includes configuration files related to role testing.
+vars – Contains variables defined for the role. These have quite a high precedence in Ansible.
+
+# To initiate role
+$ ansible-galaxy init <role_name>
+
+# To install apache, Create roles/apache/tasks/install.yml
+--------------------------------------------------------
+---
+  - name: install apache web server
+    yum:
+      name: httpd
+      state: installed
+
+# To start the service, create roles/apache/tasks/service.yml with the following content
+--------------------------------------------------------------------------------------
+---
+  - name: start apache webserver
+    service:
+      name: httpd
+      state: started
+      enabled: true
+
+# To have these tasks being called, include them into main task.
+Edit roles/apache/tasks/main.yml
+------------------------------------------------------------------------
+---
+# tasks file for apache
+  - import_tasks: install.yml
+  - import_tasks: service.yml
+  
+# Create and apply playbook to configure app servers
+# Create a playbook for app servers app.yml with following contents
+--------------------------------------------------------------------------------------
+---
+  - hosts: app
+    become: true
+    roles:
+      - apache
+
+# Apply app.yml with ansible-playbook
+  $ ansible-playbook app.yml
+  
+# Copy index.html and httpd.conf from chap6/helper to /roles/apache/files/ directory
+   cd /etc/ansible/roles/apache/files/
+   cp index.html roles/apache/files/
+
+Adding Notifications and Handlers (roles/apache/tasks/config.yml)
+---------------------------------------------------------------------
+---
+  - name: copy over httpd configs
+    copy:
+      src: httpd.conf
+      dest: /etc/httpd.conf
+      owner: root
+      group: root
+      mode: 0644
+    notify: Restart apache service
+ 
+Create the notification handler by updating roles/apache/handlers/main.yml
+---------------------------------------------------------------------
+---
+  - name: Restart apache service
+    service: name=httpd state=restarted
+
+Update tasks/main.yml to call the newly created tasks file.
+---------------------------------------------------------------------
+---
+# tasks file for apache
+  - import_tasks: install.yml
+  - import_tasks: service.yml
+  - import_tasks: config.yml
