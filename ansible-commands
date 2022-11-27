@@ -4,7 +4,7 @@
 # yum install ansible -y
 # ansible all -m ping
 
-# vi /etc/ansible
+# vi /etc/ansible/ansible.cfg
 [defaults]
 interpreter_python=auto_silent
 
